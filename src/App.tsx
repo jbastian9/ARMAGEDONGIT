@@ -1,26 +1,22 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { Container } from "react-bootstrap";
+import { BrowserRouter, Route } from "react-router-dom";
+import PaginaUsuario from "./pages/PaginaUsuario";
+import PaginaContacto from "./pages/PaginaContacto";
+import PaginaCorreo from "./pages/PaginaCorreo";
+import PaginaIngreso from "./pages/PaginaIngreso";
 
 const App = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Container fluid style={{ backgroundColor: "black" }}>
+      <BrowserRouter>
+        <Route path="/Usuario" exact component={PaginaUsuario} />
+        <Route path="/Ingreso/:id" children={<PaginaIngreso />} />
+        <Route path="/Contacto/:id" children={<PaginaContacto />} />
+        <Route path="/Correo/:id" children={<PaginaCorreo />} />
+      </BrowserRouter>
+    </Container>
   );
-}
+};
 
 export default App;
