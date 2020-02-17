@@ -5,20 +5,32 @@ import {
   Form,
   DropdownButton,
   Dropdown,
-  Button
+  Button,
+  Alert
 } from "react-bootstrap";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useHistory } from "react-router-dom";
 import { fetchArmagedon } from "../core/Fetch";
 import { Usuario, Pais, Ciudad } from "../models/Modelo";
+import { validarCampo } from "../logic/ValidarCampo";
 
 const PaginaIngreso = () => {
   let { id } = useParams();
+  let history = useHistory();
 
   const URLApi = "http://localhost/ARMAGEDONBK/api/";
 
   const [datosUsuario, setDatosUsuario] = useState<Usuario>();
   const [listaPaises, setListaPaises] = useState<Pais[]>([]);
   const [listaCiudades, setListaCiudades] = useState<Ciudad[]>([]);
+  const [alert, setAlert] = useState({ vista: false, mensaje: "" });
+  const [border, setBorder] = useState({
+    nombre: "green",
+    apellido: "green",
+    email: "green",
+    celular: "green",
+    pais: "green",
+    ciudad: "green"
+  });
 
   const Nombre: any = useRef(null);
   const Apellido: any = useRef(null);
@@ -28,16 +40,17 @@ const PaginaIngreso = () => {
   const Ciudad: any = useRef(null);
 
   useEffect(() => {
-    ObtenerDatosUsuario();
     ObtenerTodosLosPaises();
+    ObtenerDatosUsuario();
   }, []);
 
   function ObtenerDatosUsuario() {
     fetchArmagedon
       .get(URLApi + "Usuario/ConsultarPorID?UsuarioID=" + id)
       .then(objetoJson => {
-        setDatosUsuario(objetoJson);
-        console.log(objetoJson);
+        ObtenerTodasLasCiudadesDeUnPais(
+          objetoJson.Persona.Ubicacion.Pais.ID
+        ).then(() => setDatosUsuario(objetoJson));
       });
   }
 
@@ -50,17 +63,39 @@ const PaginaIngreso = () => {
   }
 
   function ObtenerTodasLasCiudadesDeUnPais(PaisID: number) {
-    fetchArmagedon
+    return fetchArmagedon
       .get(
         URLApi + "Ubicacion/ConsultarTodasLasCiudadesDeUnPais?PaisID=" + PaisID
       )
       .then(objetoJson => {
         setListaCiudades(objetoJson);
       });
+
+    validarCampo.pais(Pais?.current.value)
+      ? setBorder({ ...border, pais: "red" })
+      : setBorder({ ...border, pais: "green" });
+  }
+
+  function validar() {
+    if (validarCampo.nombre(Nombre?.current.value)) {
+      setAlert({ vista: true, mensaje: "Nombre no valido" });
+    } else if (validarCampo.apellido(Apellido?.current.value)) {
+      setAlert({ vista: true, mensaje: "Apellido no valido" });
+    } else if (validarCampo.email(Email?.current.value)) {
+      setAlert({ vista: true, mensaje: "Email no valido" });
+    } else if (validarCampo.celular(Celular?.current.value)) {
+      setAlert({ vista: true, mensaje: "Celular no valido" });
+    } else if (validarCampo.pais(Pais?.current.value)) {
+      setAlert({ vista: true, mensaje: "Pais no valido" });
+    } else if (validarCampo.ciudad(Ciudad?.current.value)) {
+      setAlert({ vista: true, mensaje: "Ciudad no valido" });
+    } else {
+      ModificarDatosUsuario();
+    }
   }
 
   function ModificarDatosUsuario() {
-    const nuevo: Usuario = {
+    const usuarioModificado: Usuario = {
       Persona: {
         ID: Number(id),
         Nombre: Nombre?.current.value,
@@ -73,42 +108,38 @@ const PaginaIngreso = () => {
         }
       }
     };
-    fetchArmagedon.put(URLApi + "Usuario/ModificarDatos", nuevo).then(data => {
-      console.log(data);
-    });
+    fetchArmagedon
+      .put(URLApi + "Usuario/ModificarDatos", usuarioModificado)
+      .then(() => {
+        history.push("/Usuario");
+      });
   }
   return (
-    <Container>
-      <Container style={{ textTransform: "uppercase" }}>
-        <Navbar
-          bg="dark"
-          variant="dark"
-          style={{ color: "white", marginTop: "20px" }}
-        >
-          <Container fluid>
-            <h3>
-              {datosUsuario?.Persona.Nombre} {datosUsuario?.Persona.Apellido}
-            </h3>
-            <div style={{ float: "right", marginRight: "2%" }}>
-              <DropdownButton
-                id="dropdown-basic-button"
-                title="OPCIONES"
-                variant="dark"
-              >
-                <Link to={{ pathname: "/Contacto/" + id }}>
-                  <Dropdown.Item href="#/action-1">CONTACTOS</Dropdown.Item>
-                </Link>
-                <Link to={{ pathname: "/Correo/" + id }}>
-                  <Dropdown.Item href="#/action-2">CORREOS</Dropdown.Item>
-                </Link>
-                <Link to="/Usuario">
-                  <Dropdown.Item href="#/action-3">SALIR</Dropdown.Item>
-                </Link>
-              </DropdownButton>
-            </div>
-          </Container>
-        </Navbar>
+    <Container style={{ textTransform: "uppercase" }}>
+      <Navbar
+        bg="dark"
+        variant="dark"
+        style={{ color: "white", marginTop: "20px" }}
+      >
+        <Container fluid>
+          <h3>
+            {datosUsuario?.Persona.Nombre} {datosUsuario?.Persona.Apellido}
+          </h3>
+          <div style={{ float: "right", marginRight: "2%" }}>
+            <DropdownButton
+              id="dropdown-basic-button"
+              title="OPCIONES"
+              variant="dark"
+            >
+              <Dropdown.Item href={"/Contacto/" + id}>CONTACTOS</Dropdown.Item>
+              <Dropdown.Item href={"/Correo/" + id}>CORREOS</Dropdown.Item>
+              <Dropdown.Item href={"/Usuario"}>SALIR</Dropdown.Item>
+            </DropdownButton>
+          </div>
+        </Container>
+      </Navbar>
 
+      {datosUsuario && (
         <Form
           style={{
             marginTop: "5%",
@@ -116,13 +147,20 @@ const PaginaIngreso = () => {
             marginRight: "15%",
             color: "white"
           }}
+          onChange={() => setAlert({ vista: false, mensaje: "" })}
         >
           <Form.Group controlId="formGroupEmail">
             <Form.Label>NOMBRE</Form.Label>
             <Form.Control
               ref={Nombre}
               type="text"
+              style={{ borderColor: border.nombre }}
               defaultValue={datosUsuario?.Persona.Nombre}
+              onChange={() => {
+                validarCampo.nombre(Nombre?.current.value)
+                  ? setBorder({ ...border, nombre: "red" })
+                  : setBorder({ ...border, nombre: "green" });
+              }}
             />
           </Form.Group>
           <Form.Group controlId="formGroupPassword">
@@ -130,7 +168,13 @@ const PaginaIngreso = () => {
             <Form.Control
               ref={Apellido}
               type="text"
+              style={{ borderColor: border.apellido }}
               defaultValue={datosUsuario?.Persona.Apellido}
+              onChange={() => {
+                validarCampo.apellido(Apellido?.current.value)
+                  ? setBorder({ ...border, apellido: "red" })
+                  : setBorder({ ...border, apellido: "green" });
+              }}
             />
           </Form.Group>
           <Form.Group controlId="formGroupPassword">
@@ -138,15 +182,29 @@ const PaginaIngreso = () => {
             <Form.Control
               ref={Email}
               type="email"
+              style={{ borderColor: border.email }}
               defaultValue={datosUsuario?.Persona.Email}
+              disabled
+              onChange={() => {
+                validarCampo.email(Email?.current.value)
+                  ? setBorder({ ...border, email: "red" })
+                  : setBorder({ ...border, email: "green" });
+              }}
             />
           </Form.Group>
           <Form.Group controlId="formGroupPassword">
             <Form.Label>CÉLULAR</Form.Label>
             <Form.Control
               ref={Celular}
-              type="number"
+              type="text"
+              style={{ borderColor: border.celular }}
               defaultValue={datosUsuario?.Persona.Celular}
+              onChange={() => {
+                validarCampo.celular(Celular?.current.value)
+                  ? setBorder({ ...border, celular: "red" })
+                  : setBorder({ ...border, celular: "green" });
+              }}
+              maxLength={10}
             />
           </Form.Group>
           <Form.Group controlId="formGroupPassword">
@@ -154,6 +212,7 @@ const PaginaIngreso = () => {
             <Form.Control
               ref={Pais}
               as="select"
+              style={{ borderColor: border.pais }}
               defaultValue={datosUsuario?.Persona.Ubicacion.Pais.ID}
               onChange={() =>
                 ObtenerTodasLasCiudadesDeUnPais(Pais?.current.value)
@@ -171,7 +230,13 @@ const PaginaIngreso = () => {
             <Form.Control
               ref={Ciudad}
               as="select"
+              style={{ borderColor: border.ciudad }}
               defaultValue={datosUsuario?.Persona.Ubicacion.Ciudad.ID}
+              onChange={() => {
+                validarCampo.ciudad(Ciudad?.current.value)
+                  ? setBorder({ ...border, ciudad: "red" })
+                  : setBorder({ ...border, ciudad: "green" });
+              }}
             >
               {listaCiudades.map((ciudad, i) => {
                 return (
@@ -188,13 +253,20 @@ const PaginaIngreso = () => {
             <Button
               variant="secondary"
               style={{ float: "right" }}
-              onClick={() => ModificarDatosUsuario()}
+              onClick={() => validar()}
             >
               MODIFICAR DATOS
             </Button>
           </Form.Group>
+          <Alert
+            variant="danger"
+            show={alert.vista}
+            onClose={() => setAlert({ vista: false, mensaje: "" })}
+          >
+            {alert.mensaje}
+          </Alert>
         </Form>
-      </Container>
+      )}
     </Container>
   );
 };
