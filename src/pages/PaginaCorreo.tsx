@@ -24,6 +24,7 @@ const PaginaCorreo = () => {
   const [listaContactos, setListaContactos] = useState<Receptor[]>([]);
   const [receptor, setReceptor] = useState<any[]>([]);
   const [fechaA, setFechaA] = useState("");
+  const [emisor, setEmisor] = useState("");
 
   const columnasCorreo = [
     columna.ID,
@@ -47,6 +48,7 @@ const PaginaCorreo = () => {
     ListarCorreosEnviados();
     ConsultarContactos();
     fechaActual();
+    fnEmisor();
   }, []);
 
   function ObtenerCorreoReceptor() {
@@ -77,6 +79,14 @@ const PaginaCorreo = () => {
       fecha.segundo.toString();
 
     setFechaA(fechaCompleta);
+  }
+
+  function fnEmisor() {
+    fetchArmagedon
+      .get(URLApi + "/Correo/Emisor?UsuarioID=" + Number(id))
+      .then(datJson => {
+        setEmisor(datJson);
+      });
   }
 
   function ListarCorreosEnviados() {
@@ -121,14 +131,21 @@ const PaginaCorreo = () => {
   function GuardarCorreo() {
     const NuevoCorreo: GuardarCorreo = {
       Fecha: Fecha?.current.value,
-      Emisor: Emisor?.current.value,
+      Emisor: Number(id),
       Receptor: receptor.toString(),
       Titulo: Titulo?.current.value,
       Mensaje: Mensaje?.current.value,
       TipoArchivo: Extension?.current.value
     };
 
-    console.log(NuevoCorreo);
+    fetchArmagedon
+      .post(URLApi + "/Correo/Guardar", NuevoCorreo)
+      .then(data => {
+        console.log(data);
+      })
+      .then(() => ListarCorreosEnviados());
+
+    OcultarModal();
   }
 
   function OcultarModal() {
@@ -206,7 +223,12 @@ const PaginaCorreo = () => {
 
             <Form.Group controlId="formGroupEmail">
               <Form.Label>EMISOR</Form.Label>
-              <Form.Control type="text" ref={Emisor} />
+              <Form.Control
+                type="text"
+                ref={Emisor}
+                defaultValue={emisor}
+                disabled
+              />
             </Form.Group>
 
             <Form.Group controlId="formGroupPassword">
@@ -221,7 +243,7 @@ const PaginaCorreo = () => {
                   return (
                     <option
                       key={i}
-                      value={contacto.ID}
+                      value={contacto.Email}
                       label={contacto.Email}
                     ></option>
                   );
@@ -233,31 +255,23 @@ const PaginaCorreo = () => {
               controlId="formGroupEmail"
               style={{ background: "grey", width: "100%" }}
             >
-              <thead>
-                <tr>
-                  {receptor.map((id, i) => {
-                    return (
-                      <th key={i}>
-                        <Button
-                          size="sm"
-                          style={{ marginRight: "8px" }}
-                          // style={{
-                          //   borderRadius: "5px",
-                          //   background: "blue",
-                          //   width: "15px",
-                          //   height: "10px",
-                          //   marginRight: "5px"
-                          // }}
-
-                          onClick={() => eliminar(id)}
-                        >
-                          {id}
-                        </Button>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
+              {receptor.map((id, i) => {
+                return (
+                  <Button
+                    key={i}
+                    size="sm"
+                    style={{
+                      marginRight: "5px",
+                      marginLeft: "5px",
+                      marginTop: "5px",
+                      width: "45%"
+                    }}
+                    onClick={() => eliminar(id)}
+                  >
+                    {id}
+                  </Button>
+                );
+              })}
             </Form.Group>
 
             <Form.Group controlId="formGroupEmail">
@@ -274,8 +288,8 @@ const PaginaCorreo = () => {
               <Form.Label>EXTENSION</Form.Label>
               <Form.Control as="select" ref={Extension}>
                 <option value={-1} label={"---SELECCIONE---"}></option>
-                <option value={0} label={"JSON"}></option>
-                <option value={1} label={"XML"}></option>
+                <option value={".json"} label={"JSON"}></option>
+                <option value={".xml"} label={"XML"}></option>
               </Form.Control>
             </Form.Group>
           </Form>

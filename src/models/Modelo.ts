@@ -29,7 +29,7 @@ export interface GuardarCorreo {
   Fecha: string;
   Titulo: string;
   Mensaje: string;
-  TipoArchivo: number;
+  TipoArchivo: string;
   Emisor: number;
   Receptor: string;
 }

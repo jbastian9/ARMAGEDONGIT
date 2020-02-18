@@ -63,9 +63,11 @@ const PaginaContacto = () => {
   const Celular: any = useRef(null);
   const Pais: any = useRef(null);
   const Ciudad: any = useRef(null);
+  const Estado: any = useRef(null);
 
   useEffect(() => {
     ListarTodosLosUsuarioDeUnContacto();
+    ObtenerTodosLosPaises();
   }, []);
 
   function ListarTodosLosUsuarioDeUnContacto() {
@@ -91,15 +93,20 @@ const PaginaContacto = () => {
       )
       .then(objetoJson => {
         setListaCiudades(objetoJson);
+      })
+      .then(() => {
+        validarCampo.pais(Pais?.current.value)
+          ? setBorder({ ...border, pais: "red", ciudad: "red" })
+          : setBorder({ ...border, pais: "green" });
       });
-    validarCampo.pais(Pais?.current.value)
-      ? setBorder({ ...border, pais: "red" })
-      : setBorder({ ...border, pais: "green" });
   }
 
-  function AgregarOModificarModal(accion: string, ContactoID: number) {
-    ObtenerTodosLosPaises();
-    DatosContacoInvididual(ContactoID);
+  function AgregarOModificarModal(
+    accion: string,
+    contacto: Contacto | undefined
+  ) {
+    setDatosContacto(contacto);
+
     if (accion === "CREAR") {
       setModalContacto({
         titulo: "NUEVO CONTACTO",
@@ -108,8 +115,20 @@ const PaginaContacto = () => {
         boton: "AGREGAR",
         accion: "CREAR"
       });
-      setMostrarModal(true);
     } else if ((accion = "MODIFICAR")) {
+      setBorder({
+        nombre: "green",
+        apellido: "green",
+        email: "green",
+        celular: "green",
+        pais: "green",
+        ciudad: "green"
+      });
+
+      ObtenerTodasLasCiudadesDeUnPais(
+        Number(contacto?.Persona.Ubicacion.Pais.ID)
+      );
+
       setModalContacto({
         titulo: "MODIFICAR DATOS",
         blkCorreo: true,
@@ -117,17 +136,11 @@ const PaginaContacto = () => {
         boton: "ACTUALIZAR",
         accion: "MODIFICAR"
       });
-      setMostrarModal(true);
-      console.log(datosContacto);
     }
+
+    setMostrarModal(true);
   }
-  function DatosContacoInvididual(ContactoID: number) {
-    fetchArmagedon
-      .get(URLApi + "Contacto/ConsultarPorID?ContactoID=" + ContactoID)
-      .then(objetoJson => {
-        setDatosContacto(objetoJson);
-      });
-  }
+
   function validar(accion: string) {
     if (validarCampo.nombre(Nombre?.current.value)) {
       setAlert({ vista: true, mensaje: "Nombre no valido" });
@@ -145,7 +158,7 @@ const PaginaContacto = () => {
       if (accion === "CREAR") {
         AgregarNuevoContacto();
       } else if ((accion = "MODIFICAR")) {
-        console.log(datosContacto);
+        ModificarDatosContacto();
       }
       OcultarModal();
     }
@@ -175,6 +188,28 @@ const PaginaContacto = () => {
       .then(() => OcultarModal());
   }
 
+  function ModificarDatosContacto() {
+    const contactoModificado: Contacto = {
+      Persona: {
+        ID: Number(datosContacto?.Persona.ID),
+        Nombre: Nombre?.current.value,
+        Apellido: Apellido?.current.value,
+        Email: Email?.current.value,
+        Celular: Celular?.current.value,
+        Ubicacion: {
+          Pais: { ID: Number(Pais?.current.value), Nombre: "" },
+          Ciudad: { ID: Number(Ciudad?.current.value), Nombre: "" }
+        }
+      },
+      Estado: Estado.current.value === "0" ? true : false
+    };
+    fetchArmagedon
+      .put(URLApi + "Contacto/ModificarDatos", contactoModificado)
+      .then(() => {
+        ListarTodosLosUsuarioDeUnContacto();
+      });
+  }
+
   function OcultarModal() {
     setMostrarModal(false);
     setBorder({
@@ -185,6 +220,7 @@ const PaginaContacto = () => {
       pais: "red",
       ciudad: "red"
     });
+    setDatosContacto(undefined);
   }
   return (
     <Container>
@@ -196,7 +232,9 @@ const PaginaContacto = () => {
           title="OPCIONES"
           variant="dark"
         >
-          <Dropdown.Item onClick={() => AgregarOModificarModal("CREAR", 0)}>
+          <Dropdown.Item
+            onClick={() => AgregarOModificarModal("CREAR", undefined)}
+          >
             AGREGAR
           </Dropdown.Item>
 
@@ -230,9 +268,9 @@ const PaginaContacto = () => {
                   <Button
                     variant="secondary"
                     block
-                    onClick={() =>
-                      AgregarOModificarModal("MODIFICAR", contacto.Persona.ID)
-                    }
+                    onClick={() => {
+                      AgregarOModificarModal("MODIFICAR", contacto);
+                    }}
                   >
                     MODIFICAR
                   </Button>
@@ -270,6 +308,7 @@ const PaginaContacto = () => {
                 type="text"
                 style={{ borderColor: border.nombre }}
                 required
+                defaultValue={datosContacto?.Persona.Nombre}
                 onChange={() => {
                   validarCampo.nombre(Nombre?.current.value)
                     ? setBorder({ ...border, nombre: "red" })
@@ -284,6 +323,7 @@ const PaginaContacto = () => {
                 type="text"
                 style={{ borderColor: border.apellido }}
                 required
+                defaultValue={datosContacto?.Persona.Apellido}
                 onChange={() => {
                   validarCampo.apellido(Apellido?.current.value)
                     ? setBorder({ ...border, apellido: "red" })
@@ -299,6 +339,7 @@ const PaginaContacto = () => {
                 disabled={modalContacto.blkCorreo}
                 style={{ borderColor: border.email }}
                 required
+                defaultValue={datosContacto?.Persona.Email}
                 onChange={() => {
                   validarCampo.email(Email?.current.value)
                     ? setBorder({ ...border, email: "red" })
@@ -313,6 +354,7 @@ const PaginaContacto = () => {
                 type="text"
                 style={{ borderColor: border.celular }}
                 required
+                defaultValue={datosContacto?.Persona.Celular}
                 onChange={() => {
                   validarCampo.celular(Celular?.current.value)
                     ? setBorder({ ...border, celular: "red" })
@@ -324,13 +366,13 @@ const PaginaContacto = () => {
             <Form.Group controlId="formGroupPassword">
               <Form.Label>PAÍS</Form.Label>
               <Form.Control
+                defaultValue={datosContacto?.Persona.Ubicacion.Pais.ID}
                 ref={Pais}
                 as="select"
                 style={{ borderColor: border.pais }}
                 onChange={() =>
                   ObtenerTodasLasCiudadesDeUnPais(Pais?.current.value)
                 }
-                defaultValue={-1}
               >
                 <option value={-1} label={"---SELECCIONE---"}></option>
                 {listaPaises.map((pais, i) => {
@@ -344,19 +386,22 @@ const PaginaContacto = () => {
                 })}
               </Form.Control>
             </Form.Group>
+
             <Form.Group controlId="formGroupPassword">
               <Form.Label>CIUDAD</Form.Label>
+
               <Form.Control
+                defaultValue={datosContacto?.Persona.Ubicacion.Ciudad.ID}
                 ref={Ciudad}
                 as="select"
                 style={{ borderColor: border.ciudad }}
-                defaultValue={-1}
                 onChange={() => {
                   validarCampo.ciudad(Ciudad?.current.value)
                     ? setBorder({ ...border, ciudad: "red" })
                     : setBorder({ ...border, ciudad: "green" });
                 }}
               >
+                {console.log(datosContacto?.Persona.Ubicacion.Ciudad.ID)}
                 <option value={-1} label={"---SELECCIONE---"}></option>
                 {listaCiudades.map((ciudad, i) => {
                   return (
@@ -369,17 +414,21 @@ const PaginaContacto = () => {
                 })}
               </Form.Control>
             </Form.Group>
-            <Form.Group controlId="formGroupPassword">
-              <Form.Label>ESTADO</Form.Label>
-              <Form.Control
-                as="select"
-                defaultValue={0}
-                disabled={modalContacto.blkEstado}
-              >
-                <option value={0} label={"ACTIVO"}></option>
-                <option value={1} label={"INACTIVO"}></option>
-              </Form.Control>
-            </Form.Group>
+            {datosContacto && (
+              <Form.Group controlId="formGroupPassword">
+                <Form.Label>ESTADO</Form.Label>
+                <Form.Control
+                  as="select"
+                  defaultValue={datosContacto?.Estado ? 0 : 1}
+                  ref={Estado}
+                  disabled={modalContacto.blkEstado}
+                  style={{ borderColor: "green" }}
+                >
+                  <option value={0} label={"ACTIVO"}></option>
+                  <option value={1} label={"INACTIVO"}></option>
+                </Form.Control>
+              </Form.Group>
+            )}
             <Form.Group controlId="formGroupPassword"></Form.Group>
           </Form>
         </Modal.Body>
