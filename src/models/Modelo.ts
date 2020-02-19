@@ -42,6 +42,16 @@ export interface Correo {
   Receptor: string;
 }
 
+export interface VisualizarCorreo {
+  ID: number;
+  Fecha: string;
+  Emisor: string;
+  Titulo: string;
+  Mensaje: string;
+  TipoArchivo: string;
+  Receptor: string;
+}
+
 export interface Receptor {
   ID: number;
   Email: string;

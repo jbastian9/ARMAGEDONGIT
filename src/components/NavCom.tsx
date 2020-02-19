@@ -14,4 +14,5 @@ const NavCom: React.FC = props => {
     </Container>
   );
 };
+
 export default NavCom;

@@ -11,7 +11,12 @@ import {
   Form
 } from "react-bootstrap";
 import { useParams } from "react-router-dom";
-import { Correo, Receptor, GuardarCorreo } from "../models/Modelo";
+import {
+  Correo,
+  Receptor,
+  GuardarCorreo,
+  VisualizarCorreo
+} from "../models/Modelo";
 import { fetchArmagedon } from "../core/Fetch";
 import Ventana from "../components/Ventana";
 
@@ -25,14 +30,23 @@ const PaginaCorreo = () => {
   const [receptor, setReceptor] = useState<any[]>([]);
   const [fechaA, setFechaA] = useState("");
   const [emisor, setEmisor] = useState("");
+  const [correo, setCorreo] = useState<VisualizarCorreo>();
+  const [camposCorreo, setCamposCorreo] = useState({
+    receptorView: false,
+    extensionView: false,
+    bloquearTitulo: false,
+    bloquearTexto: false,
+    tituloModal: "Nuevo Correo",
+    nombreBoton: "Enviar"
+  });
 
   const columnasCorreo = [
     columna.ID,
-    columna.Correo,
+
     columna.Fecha,
-    columna.Receptor,
+
     columna.Titulo,
-    columna.Mensaje,
+
     columna.TipoArchivo,
     columna.Accion
   ];
@@ -76,7 +90,8 @@ const PaginaCorreo = () => {
       ":" +
       fecha.minuto.toString() +
       ":" +
-      fecha.segundo.toString();
+      fecha.segundo.toString() +
+      " ";
 
     setFechaA(fechaCompleta);
   }
@@ -128,6 +143,23 @@ const PaginaCorreo = () => {
     }
   }
 
+  function GuardarOVisualizar() {
+    if (correo === undefined) {
+      GuardarCorreo();
+    } else {
+      console.log("DESCARGANDO...");
+      DescargarArchivo(correo.ID);
+    }
+  }
+
+  function DescargarArchivo(correoID: number) {
+    fetchArmagedon
+      .get(URLApi + "/Correo/descargarArchivo?CorreoID=" + correoID)
+      .then(datJson => {
+        console.log(datJson);
+      });
+  }
+
   function GuardarCorreo() {
     const NuevoCorreo: GuardarCorreo = {
       Fecha: Fecha?.current.value,
@@ -148,8 +180,38 @@ const PaginaCorreo = () => {
     OcultarModal();
   }
 
+  function RedactarCorreo() {
+    setMostrarModal(true);
+  }
+
+  function VisualizarCorreo(CorreoID: number) {
+    fetchArmagedon
+      .get(URLApi + "/Correo/VisualizarCorreo?CorreoID=" + CorreoID)
+      .then(data => {
+        setCorreo(data);
+        setCamposCorreo({
+          receptorView: true,
+          extensionView: true,
+          bloquearTitulo: true,
+          bloquearTexto: true,
+          tituloModal: "¿Desea Descargar Este Archivo?",
+          nombreBoton: "Descargar"
+        });
+      })
+      .then(() => setMostrarModal(true));
+  }
+
   function OcultarModal() {
+    setCorreo(undefined);
     setMostrarModal(false);
+    setCamposCorreo({
+      receptorView: false,
+      extensionView: false,
+      bloquearTitulo: false,
+      bloquearTexto: false,
+      tituloModal: "Nuevo Correo",
+      nombreBoton: "Enviar"
+    });
   }
 
   return (
@@ -162,7 +224,7 @@ const PaginaCorreo = () => {
           title="OPCIONES"
           variant="dark"
         >
-          <Dropdown.Item onClick={() => setMostrarModal(true)}>
+          <Dropdown.Item onClick={() => RedactarCorreo()}>
             REDACTAR
           </Dropdown.Item>
           <Dropdown.Item href={"/Ingreso/" + id}>VOLVER</Dropdown.Item>
@@ -181,15 +243,16 @@ const PaginaCorreo = () => {
             return (
               <tr style={{ textTransform: "uppercase" }} key={i + 1}>
                 <td>{i + 1}</td>
-                <td>{correo.ID}</td>
                 <td>{correo.Fecha}</td>
-                <td>{correo.Receptor}</td>
                 <td>{correo.Titulo}</td>
-                <td>{correo.Mensaje}</td>
                 <td>{correo.TipoArchivo}</td>
                 <td>
-                  <Button variant="secondary" block>
-                    PRE-VISUALIZAR
+                  <Button
+                    variant="secondary"
+                    block
+                    onClick={() => VisualizarCorreo(correo.ID)}
+                  >
+                    VISUALIZAR
                   </Button>
                 </td>
               </tr>
@@ -200,7 +263,7 @@ const PaginaCorreo = () => {
 
       <Ventana mostrarModal={mostrarModal} fnOcultarModal={OcultarModal}>
         <Modal.Header closeButton style={{ background: "grey" }}>
-          <Modal.Title>NUEVO CORREO</Modal.Title>
+          <Modal.Title>{camposCorreo.tituloModal}</Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ background: "black" }}>
           <Form
@@ -217,7 +280,7 @@ const PaginaCorreo = () => {
                 type="text"
                 ref={Fecha}
                 disabled
-                defaultValue={fechaA}
+                defaultValue={correo === undefined ? fechaA : correo?.Fecha}
               />
             </Form.Group>
 
@@ -226,12 +289,28 @@ const PaginaCorreo = () => {
               <Form.Control
                 type="text"
                 ref={Emisor}
-                defaultValue={emisor}
+                defaultValue={correo === undefined ? emisor : correo?.Emisor}
                 disabled
               />
             </Form.Group>
 
-            <Form.Group controlId="formGroupPassword">
+            {correo && (
+              <Form.Group controlId="formGroupEmail">
+                <Form.Label>RECEPTOR</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows="3"
+                  ref={Receptor}
+                  defaultValue={correo === undefined ? "" : correo?.Receptor}
+                  disabled
+                />
+              </Form.Group>
+            )}
+
+            <Form.Group
+              controlId="formGroupPassword"
+              hidden={camposCorreo.receptorView}
+            >
               <Form.Label>RECEPTOR</Form.Label>
               <Form.Control
                 as="select"
@@ -254,6 +333,7 @@ const PaginaCorreo = () => {
             <Form.Group
               controlId="formGroupEmail"
               style={{ background: "grey", width: "100%" }}
+              hidden={camposCorreo.receptorView}
             >
               {receptor.map((id, i) => {
                 return (
@@ -276,15 +356,39 @@ const PaginaCorreo = () => {
 
             <Form.Group controlId="formGroupEmail">
               <Form.Label>TITULO</Form.Label>
-              <Form.Control type="text" ref={Titulo} />
+              <Form.Control
+                type="text"
+                ref={Titulo}
+                defaultValue={correo === undefined ? "" : correo?.Titulo}
+                disabled={camposCorreo.bloquearTitulo}
+              />
             </Form.Group>
 
             <Form.Group controlId="formGroupEmail">
               <Form.Label>MENSAJE</Form.Label>
-              <Form.Control as="textarea" rows="3" ref={Mensaje}></Form.Control>
+              <Form.Control
+                as="textarea"
+                rows="3"
+                ref={Mensaje}
+                defaultValue={correo === undefined ? "" : correo?.Mensaje}
+                disabled={camposCorreo.bloquearTexto}
+              ></Form.Control>
             </Form.Group>
-
-            <Form.Group controlId="formGroupPassword">
+            {correo && (
+              <Form.Group controlId="formGroupEmail">
+                <Form.Label>EXTENSION</Form.Label>
+                <Form.Control
+                  type="text"
+                  ref={Extension}
+                  defaultValue={correo === undefined ? "" : correo?.TipoArchivo}
+                  disabled
+                />
+              </Form.Group>
+            )}
+            <Form.Group
+              controlId="formGroupPassword"
+              hidden={camposCorreo.extensionView}
+            >
               <Form.Label>EXTENSION</Form.Label>
               <Form.Control as="select" ref={Extension}>
                 <option value={-1} label={"---SELECCIONE---"}></option>
@@ -295,8 +399,12 @@ const PaginaCorreo = () => {
           </Form>
         </Modal.Body>
         <Modal.Footer style={{ background: "black" }}>
-          <Button variant="secondary" block onClick={() => GuardarCorreo()}>
-            ENVIAR
+          <Button
+            variant="secondary"
+            block
+            onClick={() => GuardarOVisualizar()}
+          >
+            {camposCorreo.nombreBoton}
           </Button>
         </Modal.Footer>
       </Ventana>

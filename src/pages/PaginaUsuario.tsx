@@ -85,7 +85,7 @@ const PaginaUsuario = () => {
       });
 
     validarCampo.pais(Pais?.current.value)
-      ? setBorder({ ...border, pais: "red" })
+      ? setBorder({ ...border, pais: "red", ciudad: "red" })
       : setBorder({ ...border, pais: "green" });
   }
 

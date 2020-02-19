@@ -87,7 +87,7 @@ const PaginaContacto = () => {
   }
 
   function ObtenerTodasLasCiudadesDeUnPais(PaisID: number) {
-    fetchArmagedon
+    return fetchArmagedon
       .get(
         URLApi + "Ubicacion/ConsultarTodasLasCiudadesDeUnPais?PaisID=" + PaisID
       )
@@ -95,9 +95,9 @@ const PaginaContacto = () => {
         setListaCiudades(objetoJson);
       })
       .then(() => {
-        validarCampo.pais(Pais?.current.value)
+        /*validarCampo.pais(Pais?.current.value)
           ? setBorder({ ...border, pais: "red", ciudad: "red" })
-          : setBorder({ ...border, pais: "green" });
+          : setBorder({ ...border, pais: "green" });*/
       });
   }
 
@@ -105,8 +105,7 @@ const PaginaContacto = () => {
     accion: string,
     contacto: Contacto | undefined
   ) {
-    setDatosContacto(contacto);
-
+    //setDatosContacto(contacto);
     if (accion === "CREAR") {
       setModalContacto({
         titulo: "NUEVO CONTACTO",
@@ -115,7 +114,15 @@ const PaginaContacto = () => {
         boton: "AGREGAR",
         accion: "CREAR"
       });
+      setMostrarModal(true);
     } else if ((accion = "MODIFICAR")) {
+      ObtenerTodasLasCiudadesDeUnPais(
+        Number(contacto?.Persona.Ubicacion.Pais.ID)
+      ).then(() => {
+        setDatosContacto(contacto);
+        setMostrarModal(true);
+      });
+
       setBorder({
         nombre: "green",
         apellido: "green",
@@ -125,10 +132,6 @@ const PaginaContacto = () => {
         ciudad: "green"
       });
 
-      ObtenerTodasLasCiudadesDeUnPais(
-        Number(contacto?.Persona.Ubicacion.Pais.ID)
-      );
-
       setModalContacto({
         titulo: "MODIFICAR DATOS",
         blkCorreo: true,
@@ -136,9 +139,8 @@ const PaginaContacto = () => {
         boton: "ACTUALIZAR",
         accion: "MODIFICAR"
       });
+      //setDatosContacto(contacto);
     }
-
-    setMostrarModal(true);
   }
 
   function validar(accion: string) {
@@ -401,7 +403,6 @@ const PaginaContacto = () => {
                     : setBorder({ ...border, ciudad: "green" });
                 }}
               >
-                {console.log(datosContacto?.Persona.Ubicacion.Ciudad.ID)}
                 <option value={-1} label={"---SELECCIONE---"}></option>
                 {listaCiudades.map((ciudad, i) => {
                   return (
@@ -414,6 +415,7 @@ const PaginaContacto = () => {
                 })}
               </Form.Control>
             </Form.Group>
+
             {datosContacto && (
               <Form.Group controlId="formGroupPassword">
                 <Form.Label>ESTADO</Form.Label>
