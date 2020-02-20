@@ -221,9 +221,12 @@ const PaginaUsuario = () => {
                 style={{ borderColor: border.nombre }}
                 required
                 onChange={() => {
-                  validarCampo.nombre(Nombre?.current.value)
-                    ? setBorder({ ...border, nombre: "red" })
-                    : setBorder({ ...border, nombre: "green" });
+                  setBorder({
+                    ...border,
+                    nombre: validarCampo.nombre(Nombre?.current.value)
+                      ? "red"
+                      : "green"
+                  });
                 }}
               />
             </Form.Group>

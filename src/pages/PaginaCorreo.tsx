@@ -10,7 +10,7 @@ import {
   Modal,
   Form
 } from "react-bootstrap";
-import { useParams } from "react-router-dom";
+import { useParams, Redirect } from "react-router-dom";
 import {
   Correo,
   Receptor,
@@ -148,16 +148,21 @@ const PaginaCorreo = () => {
       GuardarCorreo();
     } else {
       console.log("DESCARGANDO...");
-      DescargarArchivo(correo.ID);
+      DescargarArchivo(correo.ID, correo.TipoArchivo);
     }
   }
 
-  function DescargarArchivo(correoID: number) {
-    fetchArmagedon
-      .get(URLApi + "/Correo/descargarArchivo?CorreoID=" + correoID)
-      .then(datJson => {
-        console.log(datJson);
-      });
+  function DescargarArchivo(correoID: number, extension: string) {
+    const ruta: string =
+      URLApi +
+      "/Correo/descargarArchivo?CorreoID=" +
+      correoID +
+      "&Extension=" +
+      extension;
+    console.log(ruta);
+
+    window.open(ruta, "_blank");
+    //return <Redirect from="/Correo" to="/Usuario" />;
   }
 
   function GuardarCorreo() {
